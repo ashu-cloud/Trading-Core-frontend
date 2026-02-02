@@ -1,0 +1,70 @@
+import React, { useMemo } from "react";
+import AppShell from "../components/layout/AppShell";
+import Card from "../components/ui/Card";
+import PortfolioTable from "../components/features/portfolio/PortfolioTable";
+import AllocationChart from "../components/features/portfolio/AllocationChart";
+import { usePortfolio } from "../hooks/usePortfolio";
+import { formatCurrency } from "../lib/utils";
+
+export default function Portfolio() {
+  const { data } = usePortfolio();
+  const holdings = data?.holdings ?? [];
+  const realizedPnl = data?.realizedPnl ?? 0;
+
+  const totalUnrealized = useMemo(
+    () =>
+      holdings.reduce((sum, h) => {
+        const qty = h.quantity ?? 0;
+        const avg = h.avgPrice ?? h.averagePrice ?? 0;
+        const current = h.currentPrice ?? avg;
+        return sum + (current - avg) * qty;
+      }, 0),
+    [holdings]
+  );
+
+  return (
+    <AppShell>
+      <div className="mb-4">
+        <h1 className="text-lg font-semibold tracking-tight text-slate-50">
+          Portfolio
+        </h1>
+        <p className="text-xs text-slate-400">
+          View your holdings, allocation, and realized vs unrealized PnL.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card title="Unrealized PnL">
+          <p className="text-xs text-slate-400">Open positions only</p>
+          <p
+            className={`mt-2 text-2xl font-semibold tabular-nums ${
+              totalUnrealized >= 0 ? "text-emerald-400" : "text-rose-400"
+            }`}
+          >
+            {formatCurrency(totalUnrealized)}
+          </p>
+        </Card>
+        <Card title="Realized PnL">
+          <p className="text-xs text-slate-400">Closed positions</p>
+          <p
+            className={`mt-2 text-2xl font-semibold tabular-nums ${
+              realizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"
+            }`}
+          >
+            {formatCurrency(realizedPnl)}
+          </p>
+        </Card>
+        <Card title="Allocation">
+          <AllocationChart />
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card title="Holdings">
+          <PortfolioTable />
+        </Card>
+      </div>
+    </AppShell>
+  );
+}
+
