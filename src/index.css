@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-50 antialiased;
+}
+
+.app-shell {
+  @apply min-h-screen bg-slate-950 text-slate-50;
+}
+
