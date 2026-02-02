@@ -8,53 +8,45 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["auth", "me"],
+  /**
+   * Cookie-based session probe
+   * If this succeeds → user is authenticated
+   * If this fails (401) → not authenticated
+   */
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["auth", "session"],
     queryFn: async () => {
-      // Prefer /api/auth/me if available; as a fallback we can fetch wallet
-      const res = await api.get("/auth/me").catch(async (err) => {
-        if (err?.response?.status === 404) {
-          const walletRes = await api.get("/wallet/balance");
-          return { walletBalance: walletRes.data?.balance ?? 0 };
-        }
-        throw err;
-      });
+      const res = await api.get("/wallet/balance");
       return res.data;
     },
     retry: false,
   });
 
   useEffect(() => {
-    if (data && !isError) {
-      setUser(data);
-    }
-    if (isError) {
+    if (!isError && data) {
+      // We don’t need real user data, just session truth
+      setUser({ authenticated: true });
+    } else {
       setUser(null);
     }
   }, [data, isError]);
 
   const login = async (payload) => {
     await api.post("/auth/login", payload);
-    window.location.href = ROUTES.dashboard;
+    window.location.replace(ROUTES.dashboard);
   };
 
   const signup = async (payload) => {
     await api.post("/auth/signup", payload);
-    window.location.href = ROUTES.dashboard;
+    window.location.replace(ROUTES.dashboard);
   };
 
   const logout = async () => {
     try {
       await api.post("/auth/logout");
-    } catch (e) {
-      // ignore
     } finally {
       setUser(null);
-      window.location.href = ROUTES.login;
+      window.location.replace(ROUTES.login);
     }
   };
 
@@ -77,4 +69,3 @@ export function useAuth() {
   }
   return ctx;
 }
-
