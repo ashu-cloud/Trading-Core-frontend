@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["auth", "session"],
     queryFn: async () => {
-      const res = await api.get("/wallet/balance");
+      const res = await api.get("/auth/me");
       return res.data;
     },
     retry: false,
@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (payload) => {
-    await api.post("/auth/signup", payload);
+    await api.post("/auth/sign-up", payload);
     window.location.replace(ROUTES.dashboard);
   };
 
