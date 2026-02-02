@@ -7,10 +7,12 @@ import Input from "../../ui/Input";
 import { useAuth } from "../../../context/AuthContext";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().trim().email("Enter a valid email"),
+  password: z
+    .string()
+    .trim()
+    .min(6, "Password must be at least 6 characters"),
 });
-
 export default function LoginForm() {
   const { login } = useAuth();
   const [serverError, setServerError] = useState("");

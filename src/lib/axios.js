@@ -11,10 +11,8 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Optional: Trigger global logout logic here
-      window.location.href = "/login";
-    }
+    // Let callers decide how to handle 401/403.
+    // ProtectedRoute and AuthContext control navigation.
     return Promise.reject(error);
   }
 );

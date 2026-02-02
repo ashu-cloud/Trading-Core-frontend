@@ -1,11 +1,17 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 
-export default function Input({ label, error, className, ...props }) {
+const Input = React.forwardRef(function Input(
+  { label, error, className, ...props },
+  ref
+) {
   return (
     <label className="flex w-full flex-col gap-1 text-sm">
-      {label && <span className="text-xs font-medium text-slate-300">{label}</span>}
+      {label && (
+        <span className="text-xs font-medium text-slate-300">{label}</span>
+      )}
       <input
+        ref={ref}
         className={cn(
           "w-full rounded-md border bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none ring-0 transition-colors placeholder:text-slate-500",
           error
@@ -20,5 +26,7 @@ export default function Input({ label, error, className, ...props }) {
       )}
     </label>
   );
-}
+});
+
+export default Input;
 
