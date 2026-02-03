@@ -15,26 +15,26 @@ export const ROUTES = {
 // ==========================
 export const API = {
   AUTH: {
-    SIGNUP: "/auth/sign-up", // FIXED
+    SIGNUP: "/auth/sign-up", // FIXED: Matches backend
     LOGIN: "/auth/login",
     ME: "/auth/me",
     LOGOUT: "/auth/logout",
   },
-  // ... USER ...
+  // ... keep USER object ...
   WALLET: {
     ROOT: "/user/wallet",
     ADD: "/user/wallet/add",
   },
   MARKET: {
     STOCKS: "/market/stocks",
-    PRICE: (symbol) => `/market/price/${symbol}`,
+    PRICE: (symbol) => `/market/price/${symbol}`, // FIXED: Matches backend
     HISTORY: (symbol) => `/market/history/${symbol}`,
   },
   ORDER: {
-    BUY: "/order/buy",   // FIXED: Split into BUY/SELL
-    SELL: "/order/sell", // FIXED
-    HISTORY: "/order/my", // FIXED
-    CANCEL: (id) => `/order/${id}`, // FIXED: Removed /cancel/
+    BUY: "/order/buy",   // FIXED: Matches backend
+    SELL: "/order/sell", // FIXED: Matches backend
+    HISTORY: "/order/my", // FIXED: Matches backend
+    CANCEL: (id) => `/order/${id}`, // FIXED: Backend uses DELETE /:id
     EXECUTE: (id) => `/order/execute/${id}`,
     LOGS: (id) => `/order/${id}/logs`,
   },

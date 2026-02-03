@@ -5,9 +5,9 @@ export function useWalletBalance() {
   return useQuery({
     queryKey: ["wallet"],
     queryFn: async () => {
-      // FIXED: Backend route is mounted at /api/user/wallet
+      // FIXED: Correct endpoint matching backend mount point
       const res = await api.get("/user/wallet");
-      return res.data ?? { balance: 0, wallet_balance: 0 };
+      return { balance: res.data?.wallet_balance ?? 0 };
     },
     refetchInterval: 10000,
   });

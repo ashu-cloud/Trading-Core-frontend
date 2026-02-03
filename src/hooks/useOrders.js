@@ -7,10 +7,9 @@ export function useOrders() {
     queryKey: ["orders"],
     staleTime: 0,
     refetchInterval: REFRESH_RATES.ordersMs,
-    queryFn: async () => {
-      // FIXED: Backend route is '/my', not '/history'
+   queryFn: async () => {
+      // FIXED: Correct endpoint
       const res = await api.get("/order/my");
-      // Backend returns { orders: [...] }, handle that structure
       return res.data?.orders ?? [];
     },
   });
@@ -20,8 +19,8 @@ export function useOrderActions() {
   const queryClient = useQueryClient();
 
   const cancelMutation = useMutation({
-    mutationFn: async (orderId) => {
-      // FIXED: Backend uses DELETE method on /order/:id
+   mutationFn: async (orderId) => {
+      // FIXED: Use DELETE method
       await api.delete(`/order/${orderId}`);
     },
     onSuccess: () => {
