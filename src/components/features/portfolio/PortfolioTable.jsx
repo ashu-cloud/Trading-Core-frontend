@@ -12,11 +12,14 @@ export default function PortfolioTable({ priceMap = {}, priceLoading = false }) 
 
   const rows = useMemo(
     () =>
+      // ... inside useMemo ...
       holdings.map((h) => {
         const symbol = (h.stockSymbol ?? h.symbol ?? "").toUpperCase();
         const qty = h.quantity ?? 0;
-        const avg = h.averagePrice ?? 0;
+        // FIXED: avgPrice is the key from backend
+        const avg = h.avgPrice ?? h.averagePrice ?? 0; 
         const current = priceMap[symbol];
+        // ...
         const pnlValue = current !== undefined ? (current - avg) * qty : null;
         const pnlPct = current !== undefined && avg > 0 ? ((current - avg) / avg) * 100 : 0;
         return {

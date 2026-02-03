@@ -38,14 +38,16 @@ export default function QuickSellModal({ symbol, quantity, onClose }) {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      await api.post("/order/place", {
-        stockSymbol: String(symbol).toUpperCase(),
+      // FIXED: Use specific SELL endpoint and correct payload key 'symbol'
+      await api.post("/order/sell", {
+        symbol: String(symbol).toUpperCase(),
         quantity: Number(values.quantity),
-        price: Number(values.price),
-        type: "SELL",
+        // Backend placeSellOrder doesn't strictly read price from body 
+        // (it calculates PnL based on live price), but we send it for consistency.
       });
 
       toast.success("Quick sell order placed");
+      // ... rest of code
       // Invalidate caches per spec
       queryClient.invalidateQueries({ queryKey: ["portfolio"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });

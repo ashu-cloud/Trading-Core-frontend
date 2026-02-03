@@ -8,8 +8,10 @@ export function useOrders() {
     staleTime: 0,
     refetchInterval: REFRESH_RATES.ordersMs,
     queryFn: async () => {
-      const res = await api.get("/order/history");
-      return res.data ?? [];
+      // FIXED: Backend route is '/my', not '/history'
+      const res = await api.get("/order/my");
+      // Backend returns { orders: [...] }, handle that structure
+      return res.data?.orders ?? [];
     },
   });
 }
@@ -19,10 +21,10 @@ export function useOrderActions() {
 
   const cancelMutation = useMutation({
     mutationFn: async (orderId) => {
-      await api.post(`/order/cancel/${orderId}`);
+      // FIXED: Backend uses DELETE method on /order/:id
+      await api.delete(`/order/${orderId}`);
     },
     onSuccess: () => {
-      // Refunds affect wallet and orders
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },

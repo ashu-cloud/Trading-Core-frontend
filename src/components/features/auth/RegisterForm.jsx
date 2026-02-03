@@ -8,7 +8,7 @@ import { useAuth } from "../../../context/AuthContext";
 import toast from "react-hot-toast";
 
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
   email: z.string().email("Enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
@@ -24,7 +24,7 @@ export default function RegisterForm() {
   } = useForm({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      username: "",
+      name: "", // FIXED: was username
       email: "",
       password: "",
     },
@@ -55,10 +55,10 @@ export default function RegisterForm() {
       autoComplete="on"
     >
       <Input
-        label="Username"
-        autoComplete="username"
-        error={errors.username?.message}
-        {...register("username")}
+        label="Name" // FIXED: Label updated
+        autoComplete="name"
+        error={errors.name?.message} // FIXED: Access errors.name
+        {...register("name")} // FIXED: Register 'name'
       />
       <Input
         label="Email"

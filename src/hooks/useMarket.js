@@ -10,9 +10,9 @@ export function useMarketPrice(symbol) {
     refetchInterval: REFRESH_RATES.marketPriceMs,
     queryFn: async () => {
       const sym = String(symbol).toUpperCase();
-      const res = await api.get(`/stock/${encodeURIComponent(sym)}`);
+      // FIXED: Changed endpoint to match backend market.router.js
+      const res = await api.get(`/market/price/${encodeURIComponent(sym)}`);
       return res.data;
     },
   });
 }
-

@@ -63,8 +63,8 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (payload) => {
-    // Backend route: POST /api/auth/register
-    const res = await api.post("/auth/register", payload);
+    // FIXED: Endpoint mismatch
+    const res = await api.post("/auth/sign-up", payload);
     setUser(res.data?.user ?? res.data);
     queryClient.invalidateQueries({ queryKey: ["user"] });
     window.location.replace(ROUTES.dashboard);

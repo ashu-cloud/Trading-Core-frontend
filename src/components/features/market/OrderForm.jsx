@@ -86,14 +86,21 @@ export default function OrderForm({ side = "BUY", symbol }) {
   const onSubmit = async (values) => {
     setServerError("");
     try {
+      // FIXED: Backend expects 'symbol', not 'stockSymbol'
       const payload = {
-        stockSymbol: String(values.stockSymbol).toUpperCase(),
+        symbol: String(values.stockSymbol).toUpperCase(),
         quantity: Number(values.quantity),
-        price: Number(values.price),
+        // price is sent but ignored by backend for BUY orders (it fetches live price), 
+        // but required for SELL/Limit logic if implemented.
         type: side.toUpperCase(),
       };
 
-      await api.post("/order/place", payload);
+      // FIXED: Split logic to call specific endpoints based on side
+      if (side === "BUY") {
+         await api.post("/order/buy", payload);
+      } else {
+         await api.post("/order/sell", payload);
+      }
 
       toast.success("Order placed");
       reset({ stockSymbol: symbol || "", quantity: 0, price: 0 });

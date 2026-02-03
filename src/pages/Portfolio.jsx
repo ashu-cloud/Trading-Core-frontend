@@ -22,7 +22,8 @@ export default function Portfolio() {
     queries: symbols.map((sym) => ({
       queryKey: ["stock", sym],
       queryFn: async () => {
-        const res = await api.get(`/stock/${encodeURIComponent(sym)}`);
+        // FIXED: Changed endpoint to match backend
+        const res = await api.get(`/market/price/${encodeURIComponent(sym)}`);
         return res.data;
       },
       staleTime: 0,

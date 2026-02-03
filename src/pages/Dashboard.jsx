@@ -20,14 +20,21 @@ export default function Dashboard() {
 
   // Portfolio market value is not available from backend directly (backend does not store live price).
   // Use averagePrice * qty as a conservative estimate; live market value is computed on the Portfolio page.
+ // src/pages/Dashboard.jsx
+
+  // ...
+  // FIXED: averagePrice -> avgPrice
   const portfolioValue = useMemo(
     () =>
       holdings.reduce(
-        (sum, h) => sum + ( (h.averagePrice ?? h.avgPrice ?? 0) * (h.quantity ?? 0) ),
+        (sum, h) => sum + ( (h.avgPrice ?? h.averagePrice ?? 0) * (h.quantity ?? 0) ),
         0
       ),
     [holdings]
   );
+
+  // NOTE: Realized PnL will remain 0 unless backend is updated to return it.
+  // No frontend fix possible for missing data, but safe navigation handles it.
 
   const accountValue = walletBalance + portfolioValue;
 
