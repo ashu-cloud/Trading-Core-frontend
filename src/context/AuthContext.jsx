@@ -1,20 +1,24 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/axios";
 import { ROUTES } from "../lib/constants";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
+
+  // Explicit local loading state (defaults to true to avoid flicker)
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   /**
    * Cookie-based session probe
    * If this succeeds → user is authenticated
    * If this fails (401) → not authenticated
    */
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["auth", "session"],
+  const { data, isError, isFetching } = useQuery({
+    queryKey: ["user"],
     queryFn: async () => {
       const res = await api.get("/auth/me");
       return res.data;
@@ -23,21 +27,46 @@ export function AuthProvider({ children }) {
   });
 
   useEffect(() => {
+    // keep explicit loading state in-sync with react-query
+    setIsLoading(isFetching);
+  }, [isFetching]);
+
+  useEffect(() => {
     if (!isError && data) {
-      // We don’t need real user data, just session truth
-      setUser({ authenticated: true });
-    } else {
+      // set the actual user returned from server when available
+      setUser(data?.user ?? data);
+    } else if (isError) {
       setUser(null);
     }
   }, [data, isError]);
 
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setUser(null);
+      // avoid redirect loop
+      if (window.location.pathname !== ROUTES.login) {
+        window.location.replace(ROUTES.login);
+      }
+    };
+
+    window.addEventListener("app:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("app:unauthorized", onUnauthorized);
+  }, []);
+
   const login = async (payload) => {
-    await api.post("/auth/login", payload);
+    // payload should be { email, password }
+    const res = await api.post("/auth/login", payload);
+    setUser(res.data?.user ?? res.data);
+    // Invalidate user-related caches
+    queryClient.invalidateQueries({ queryKey: ["user"] });
     window.location.replace(ROUTES.dashboard);
   };
 
   const signup = async (payload) => {
-    await api.post("/auth/sign-up", payload);
+    // Backend route: POST /api/auth/register
+    const res = await api.post("/auth/register", payload);
+    setUser(res.data?.user ?? res.data);
+    queryClient.invalidateQueries({ queryKey: ["user"] });
     window.location.replace(ROUTES.dashboard);
   };
 
@@ -46,6 +75,7 @@ export function AuthProvider({ children }) {
       await api.post("/auth/logout");
     } finally {
       setUser(null);
+      queryClient.clear();
       window.location.replace(ROUTES.login);
     }
   };

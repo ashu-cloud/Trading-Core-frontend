@@ -8,7 +8,7 @@ export function useOrders() {
     staleTime: 0,
     refetchInterval: REFRESH_RATES.ordersMs,
     queryFn: async () => {
-      const res = await api.get("/order/my");
+      const res = await api.get("/order/history");
       return res.data ?? [];
     },
   });
@@ -19,19 +19,24 @@ export function useOrderActions() {
 
   const cancelMutation = useMutation({
     mutationFn: async (orderId) => {
-      await api.delete(`/order/${orderId}`);
+      await api.post(`/order/cancel/${orderId}`);
     },
     onSuccess: () => {
+      // Refunds affect wallet and orders
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
   });
 
+  // Keep executeMutation available if admin test helpers exist, but ensure invalidation
   const executeMutation = useMutation({
     mutationFn: async (orderId) => {
       await api.post(`/order/execute/${orderId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
     },
   });
 

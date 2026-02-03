@@ -4,12 +4,13 @@ import { REFRESH_RATES } from "../lib/constants";
 
 export function useMarketPrice(symbol) {
   return useQuery({
-    queryKey: ["market", "price", symbol],
+    queryKey: ["stock", symbol],
     enabled: !!symbol,
     staleTime: 0,
     refetchInterval: REFRESH_RATES.marketPriceMs,
     queryFn: async () => {
-      const res = await api.get(`/stock/${encodeURIComponent(symbol)}`);
+      const sym = String(symbol).toUpperCase();
+      const res = await api.get(`/stock/${encodeURIComponent(sym)}`);
       return res.data;
     },
   });

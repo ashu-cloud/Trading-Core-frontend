@@ -3,11 +3,13 @@ import api from "../lib/axios";
 
 export function useWalletBalance() {
   return useQuery({
-    queryKey: ["wallet", "balance"],
+    queryKey: ["wallet"],
     queryFn: async () => {
       const res = await api.get("/wallet/balance");
       return res.data ?? { balance: 0 };
     },
+    // Poll wallet every 10s as the backend is the source of truth
+    refetchInterval: 10000,
   });
 }
 

@@ -2,7 +2,8 @@ import React from "react";
 import { formatCurrency } from "../../../lib/utils";
 
 export default function PriceDisplay({ symbol, data, isLoading }) {
-  const price = data?.currentPrice ?? 0;
+  // Backend returns { symbol, price }
+  const price = data?.price;
   const changePct = 0; // backend does not provide, keep neutral or extend later
 
   return (
@@ -19,7 +20,7 @@ export default function PriceDisplay({ symbol, data, isLoading }) {
       </div>
       <div className="flex items-baseline gap-4">
         <p className="text-3xl font-semibold tabular-nums">
-          {symbol ? formatCurrency(price) : "--"}
+          {symbol ? (isLoading ? "Loading…" : formatCurrency(price ?? 0)) : "--"}
         </p>
         {symbol && (
           <p className="text-xs text-slate-400">

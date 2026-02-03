@@ -21,7 +21,7 @@ export default function AllocationChart() {
   const portfolioValue = useMemo(
     () =>
       holdings.reduce(
-        (sum, h) => sum + (h.currentPrice ?? 0) * (h.quantity ?? 0),
+        (sum, h) => sum + ((h.averagePrice ?? 0) * (h.quantity ?? 0)),
         0
       ),
     [holdings]

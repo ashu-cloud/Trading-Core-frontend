@@ -5,6 +5,7 @@ import { z } from "zod";
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import { useAuth } from "../../../context/AuthContext";
+import toast from "react-hot-toast";
 
 const signupSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -18,6 +19,7 @@ export default function RegisterForm() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(signupSchema),
@@ -38,6 +40,10 @@ export default function RegisterForm() {
         err?.response?.data?.error ??
         "Signup failed. Please try again.";
       setServerError(message);
+      toast.error(message);
+      if (/exist/i.test(message) || /already exists/i.test(message)) {
+        setError("email", { type: "server", message });
+      }
     }
   };
 

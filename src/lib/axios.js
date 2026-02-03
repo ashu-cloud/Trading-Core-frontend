@@ -11,8 +11,30 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Let callers decide how to handle 401/403.
-    // ProtectedRoute and AuthContext control navigation.
+    const status = error?.response?.status;
+
+    // Broadcast standardized app events so React can respond in a single place
+    if (status === 401) {
+      window.dispatchEvent(
+        new CustomEvent("app:unauthorized", {
+          detail: { message: error?.response?.data?.message },
+        })
+      );
+    }
+
+    if (status === 429) {
+      // rate limit: include a retry hint (seconds)
+      window.dispatchEvent(
+        new CustomEvent("app:rate-limited", {
+          detail: { retryAfter: 30 },
+        })
+      );
+    }
+
+    if (status === 500) {
+      window.dispatchEvent(new CustomEvent("app:service-unavailable"));
+    }
+
     return Promise.reject(error);
   }
 );

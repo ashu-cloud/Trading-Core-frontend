@@ -4,7 +4,7 @@ import { usePortfolio } from "../../../hooks/usePortfolio";
 import { formatCurrency, formatPercent } from "../../../lib/utils";
 import QuickSellModal from "./QuickSellModal";
 
-export default function PortfolioTable() {
+export default function PortfolioTable({ priceMap = {}, priceLoading = false }) {
   const { data, isLoading, isError, refetch } = usePortfolio();
   const [quickSellSymbol, setQuickSellSymbol] = useState(null);
 
@@ -13,13 +13,12 @@ export default function PortfolioTable() {
   const rows = useMemo(
     () =>
       holdings.map((h) => {
-        const symbol = h.stockSymbol ?? h.symbol;
+        const symbol = (h.stockSymbol ?? h.symbol ?? "").toUpperCase();
         const qty = h.quantity ?? 0;
-        const avg = h.avgPrice ?? h.averagePrice ?? 0;
-        const current = h.currentPrice ?? avg;
-        const pnlValue = (current - avg) * qty;
-        const pnlPct =
-          avg > 0 ? ((current - avg) / avg) * 100 : 0;
+        const avg = h.averagePrice ?? 0;
+        const current = priceMap[symbol];
+        const pnlValue = current !== undefined ? (current - avg) * qty : null;
+        const pnlPct = current !== undefined && avg > 0 ? ((current - avg) / avg) * 100 : 0;
         return {
           ...h,
           symbol,
@@ -30,7 +29,7 @@ export default function PortfolioTable() {
           pnlPct,
         };
       }),
-    [holdings]
+    [holdings, priceMap]
   );
 
   if (isLoading) {
@@ -84,19 +83,35 @@ export default function PortfolioTable() {
                   {formatCurrency(row.avg)}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums text-slate-200">
-                  {formatCurrency(row.current)}
+                  {row.current !== undefined ? (
+                    formatCurrency(row.current)
+                  ) : (
+                    priceLoading ? (
+                      <span className="text-slate-400">Loading…</span>
+                    ) : (
+                      "--"
+                    )
+                  )}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
-                  <span
-                    className={
-                      row.pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }
-                  >
-                    {formatCurrency(row.pnlValue)}{" "}
-                    <span className="text-[11px] text-slate-400">
-                      ({formatPercent(row.pnlPct)})
+                  {row.pnlValue === null ? (
+                    priceLoading ? (
+                      <span className="text-slate-400">Loading…</span>
+                    ) : (
+                      "--"
+                    )
+                  ) : (
+                    <span
+                      className={
+                        row.pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"
+                      }
+                    >
+                      {formatCurrency(row.pnlValue)}{" "}
+                      <span className="text-[11px] text-slate-400">
+                        ({formatPercent(row.pnlPct)})
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </td>
                 <td className="px-2 py-1 text-right">
                   <Button

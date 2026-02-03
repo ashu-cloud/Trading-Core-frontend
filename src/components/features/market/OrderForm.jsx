@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -21,14 +22,17 @@ const orderSchema = z.object({
 
 export default function OrderForm({ side = "BUY", symbol }) {
   const [serverError, setServerError] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState(0);
   const { data: wallet } = useWalletBalance();
   const { data: portfolio } = usePortfolio();
+  const queryClient = useQueryClient();
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(orderSchema),
@@ -59,28 +63,82 @@ export default function OrderForm({ side = "BUY", symbol }) {
   const insufficientFunds = side === "BUY" && total > walletBalance;
   const insufficientShares = side === "SELL" && quantity > ownedShares;
 
+  // Cooldown countdown for 429 responses
+  const isCooldown = Date.now() < cooldownUntil;
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  React.useEffect(() => {
+    if (!isCooldown) {
+      setSecondsLeft(0);
+      return;
+    }
+    const t = setInterval(() => {
+      const left = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) {
+        clearInterval(t);
+        setCooldownUntil(0);
+      }
+    }, 500);
+    return () => clearInterval(t);
+  }, [cooldownUntil, isCooldown]);
+
   const onSubmit = async (values) => {
     setServerError("");
     try {
       const payload = {
-        stockSymbol: values.stockSymbol,
+        stockSymbol: String(values.stockSymbol).toUpperCase(),
         quantity: Number(values.quantity),
         price: Number(values.price),
-        type: side,
+        type: side.toUpperCase(),
       };
-      if (side === "BUY") {
-        await api.post("/order/buy", payload);
-      } else {
-        await api.post("/order/sell", payload);
-      }
+
+      await api.post("/order/place", payload);
+
       toast.success("Order placed");
       reset({ stockSymbol: symbol || "", quantity: 0, price: 0 });
+
+      // Invalidation lifecycle per backend spec
+      if (payload.type === "BUY") {
+        queryClient.invalidateQueries({ queryKey: ["wallet"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else {
+        // SELL
+        queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+        queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      }
     } catch (err) {
-      const message =
-        err?.response?.data?.message ??
-        err?.response?.data?.error ??
-        "Unable to place order.";
+      const status = err?.response?.status;
+      const message = err?.response?.data?.message ?? err?.message ?? "Unable to place order.";
+
       setServerError(message);
+
+      // 400: show toast with server message and mark relevant field(s)
+      if (status === 400) {
+        toast.error(message);
+        // Heuristics to highlight fields
+        if (/quantity/i.test(message)) {
+          setError("quantity", { type: "server", message });
+        }
+        if (/price/i.test(message)) {
+          setError("price", { type: "server", message });
+        }
+        if (/symbol|invalid/i.test(message)) {
+          setError("stockSymbol", { type: "server", message });
+        }
+        return;
+      }
+
+      // 429: enforce cooldown UI
+      if (status === 429) {
+        const retrySeconds = err?.response?.data?.retryAfter ?? 30;
+        setCooldownUntil(Date.now() + retrySeconds * 1000);
+        toast.error(`Rate limited — try again in ${retrySeconds} seconds`);
+        return;
+      }
+
+      // Generic fallback
       toast.error("Order failed");
     }
   };
@@ -103,7 +161,7 @@ export default function OrderForm({ side = "BUY", symbol }) {
           label="Quantity"
           type="number"
           step="1"
-          min="0"
+          min="1"
           error={errors.quantity?.message}
           {...register("quantity", { valueAsNumber: true })}
         />
@@ -111,7 +169,7 @@ export default function OrderForm({ side = "BUY", symbol }) {
           label="Limit price"
           type="number"
           step="0.01"
-          min="0"
+          min="0.01"
           error={errors.price?.message}
           {...register("price", { valueAsNumber: true })}
         />
@@ -152,12 +210,18 @@ export default function OrderForm({ side = "BUY", symbol }) {
         </div>
       )}
 
+      {isCooldown && (
+        <div className="text-center text-xs text-amber-300">
+          Cool down: {secondsLeft}s
+        </div>
+      )}
+
       <Button
         type="submit"
         className="w-full"
         variant={side === "BUY" ? "success" : "danger"}
         isLoading={isSubmitting}
-        disabled={insufficientFunds || insufficientShares || total <= 0}
+        disabled={insufficientFunds || insufficientShares || total <= 0 || isCooldown}
       >
         {side === "BUY" ? "Place buy order" : "Place sell order"}
       </Button>

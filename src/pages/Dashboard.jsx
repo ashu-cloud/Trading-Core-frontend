@@ -18,10 +18,12 @@ export default function Dashboard() {
   const holdings = portfolio?.holdings ?? [];
   const realizedPnl = portfolio?.realizedPnl ?? 0;
 
+  // Portfolio market value is not available from backend directly (backend does not store live price).
+  // Use averagePrice * qty as a conservative estimate; live market value is computed on the Portfolio page.
   const portfolioValue = useMemo(
     () =>
       holdings.reduce(
-        (sum, h) => sum + (h.currentPrice ?? 0) * (h.quantity ?? 0),
+        (sum, h) => sum + ( (h.averagePrice ?? h.avgPrice ?? 0) * (h.quantity ?? 0) ),
         0
       ),
     [holdings]

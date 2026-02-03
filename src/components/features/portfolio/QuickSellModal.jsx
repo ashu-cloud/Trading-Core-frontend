@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import api from "../../../lib/axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 const quickSellSchema = z.object({
   quantity: z
@@ -19,9 +20,12 @@ const quickSellSchema = z.object({
 
 export default function QuickSellModal({ symbol, quantity, onClose }) {
   const [serverError, setServerError] = useState("");
+  const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(quickSellSchema),
@@ -34,21 +38,31 @@ export default function QuickSellModal({ symbol, quantity, onClose }) {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      await api.post("/order/sell", {
-        stockSymbol: symbol,
+      await api.post("/order/place", {
+        stockSymbol: String(symbol).toUpperCase(),
         quantity: Number(values.quantity),
         price: Number(values.price),
         type: "SELL",
       });
+
       toast.success("Quick sell order placed");
+      // Invalidate caches per spec
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
       onClose();
     } catch (err) {
+      const status = err?.response?.status;
       const message =
         err?.response?.data?.message ??
         err?.response?.data?.error ??
         "Unable to place quick sell order.";
       setServerError(message);
-      toast.error("Sell failed");
+      toast.error(message);
+      if (status === 400) {
+        if (/quantity/i.test(message)) setError("quantity", { type: "server", message });
+        if (/price/i.test(message)) setError("price", { type: "server", message });
+      }
     }
   };
 
@@ -81,7 +95,7 @@ export default function QuickSellModal({ symbol, quantity, onClose }) {
             label="Quantity to sell"
             type="number"
             step="1"
-            min="0"
+            min="1"
             error={errors.quantity?.message}
             {...register("quantity", { valueAsNumber: true })}
           />

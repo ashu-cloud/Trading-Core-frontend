@@ -15,7 +15,7 @@ export const ROUTES = {
 // ==========================
 export const API = {
   AUTH: {
-    SIGNUP: "/auth/sign-up",
+    SIGNUP: "/auth/register",
     LOGIN: "/auth/login",
     ME: "/auth/me",
     LOGOUT: "/auth/logout",
@@ -38,10 +38,9 @@ export const API = {
   },
 
   ORDER: {
-    BUY: "/order/buy",
-    SELL: "/order/sell",
-    MY: "/order/my",
-    CANCEL: (id) => `/order/${id}`,
+    PLACE: "/order/place",
+    HISTORY: "/order/history",
+    CANCEL: (id) => `/order/cancel/${id}`,
     EXECUTE: (id) => `/order/execute/${id}`,
     LOGS: (id) => `/order/${id}/logs`,
   },
