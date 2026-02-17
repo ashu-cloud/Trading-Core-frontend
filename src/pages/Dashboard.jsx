@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react"; // FIXED: Added useState
 import AppShell from "../components/layout/AppShell";
 import Card from "../components/ui/Card";
 import { useWalletBalance, usePortfolio } from "../hooks/usePortfolio";
@@ -6,6 +6,8 @@ import { useOrders } from "../hooks/useOrders";
 import { formatCurrency } from "../lib/utils";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import Badge from "../components/ui/Badge";
+import Button from "../components/ui/Button"; // Ensure Button is imported
+import DepositMoney from "../components/features/portfolio/DepositMoney"; // FIXED: Corrected naming
 
 const ALLOCATION_COLORS = ["#6366f1", "#22c55e"];
 
@@ -13,6 +15,7 @@ export default function Dashboard() {
   const { data: wallet } = useWalletBalance();
   const { data: portfolio } = usePortfolio();
   const { data: orders } = useOrders();
+  const [isDepositOpen, setIsDepositOpen] = useState(false); // FIXED: Now works with imported useState
 
   const walletBalance = wallet?.balance ?? 0;
   const holdings = portfolio?.holdings ?? [];
@@ -60,9 +63,20 @@ export default function Dashboard() {
           <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
             <div>
               <p className="text-slate-400">Cash balance</p>
-              <p className="mt-1 text-base font-medium tabular-nums text-slate-50">
-                {formatCurrency(walletBalance)}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="mt-1 text-base font-medium tabular-nums text-slate-50">
+                  {formatCurrency(walletBalance)}
+                </p>
+                {/* FIXED: Add Button within the Cash balance section */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-[10px] h-6 px-2"
+                  onClick={() => setIsDepositOpen(true)}
+                >
+                  + Add Cash
+                </Button>
+              </div>
             </div>
             <div>
               <p className="text-slate-400">Portfolio market value</p>
@@ -114,9 +128,9 @@ export default function Dashboard() {
                     border: "1px solid #1e293b",
                     borderRadius: "0.5rem",
                     fontSize: "11px",
-                    color: "#f8fafc", // FIXED: Force white text
+                    color: "#f8fafc",
                   }}
-                  itemStyle={{ color: "#f8fafc" }} // FIXED: Force item text to white
+                  itemStyle={{ color: "#f8fafc" }}
                   formatter={(value, name) => [formatCurrency(value), name]}
                 />
               </PieChart>
@@ -184,6 +198,8 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+      {/* FIXED: Modal trigger */}
+      {isDepositOpen && <DepositMoney onClose={() => setIsDepositOpen(false)} />}
     </AppShell>
   );
 }

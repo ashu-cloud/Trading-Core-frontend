@@ -16,7 +16,7 @@ const depositSchema = z.object({
     .max(1000000, "Maximum deposit is ₹1,000,000"),
 });
 
-export default function DepositModal({ onClose }) {
+export default function DepositMoney({ onClose }) {
   const [serverError, setServerError] = useState("");
   const queryClient = useQueryClient();
 
