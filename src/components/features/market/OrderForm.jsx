@@ -8,6 +8,7 @@ import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import { useWalletBalance, usePortfolio } from "../../../hooks/usePortfolio";
 import api from "../../../lib/axios";
+import { API } from "../../../lib/constants"; // Use correct API constant
 import { formatCurrency } from "../../../lib/utils";
 
 const orderSchema = z.object({
@@ -45,6 +46,8 @@ export default function OrderForm({ side = "BUY", symbol }) {
 
   const quantity = watch("quantity");
   const price = watch("price");
+  const currentSymbol = watch("stockSymbol");
+
   const total = useMemo(
     () => Number(quantity || 0) * Number(price || 0),
     [quantity, price]
@@ -54,16 +57,16 @@ export default function OrderForm({ side = "BUY", symbol }) {
   const holdings = portfolio?.holdings ?? [];
 
   const ownedShares = useMemo(() => {
+    if (!currentSymbol) return 0;
     const holding = holdings.find(
-      (h) => (h.stockSymbol ?? h.symbol) === (symbol || watch("stockSymbol"))
+      (h) => (h.stockSymbol ?? h.symbol) === currentSymbol.toUpperCase()
     );
     return holding?.quantity ?? 0;
-  }, [holdings, symbol, watch]);
+  }, [holdings, currentSymbol]);
 
   const insufficientFunds = side === "BUY" && total > walletBalance;
   const insufficientShares = side === "SELL" && quantity > ownedShares;
 
-  // Cooldown countdown for 429 responses
   const isCooldown = Date.now() < cooldownUntil;
   const [secondsLeft, setSecondsLeft] = useState(0);
 
@@ -86,67 +89,45 @@ export default function OrderForm({ side = "BUY", symbol }) {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      // FIXED: Backend expects 'symbol', not 'stockSymbol'
+      // FIXED: Ensure strict types match backend DTO
       const payload = {
-        symbol: String(values.stockSymbol).toUpperCase(),
+        symbol: String(values.stockSymbol).trim().toUpperCase(),
         quantity: Number(values.quantity),
-        // price is sent but ignored by backend for BUY orders (it fetches live price), 
-        // but required for SELL/Limit logic if implemented.
-        type: side.toUpperCase(),
       };
 
-      // FIXED: Split logic to call specific endpoints based on side
       if (side === "BUY") {
-         await api.post("/order/buy", payload);
+         await api.post(API.ORDER.BUY, payload);
       } else {
-         await api.post("/order/sell", payload);
+         await api.post(API.ORDER.SELL, payload);
       }
 
-      toast.success("Order placed");
+      toast.success(`${side} order placed successfully`);
       reset({ stockSymbol: symbol || "", quantity: 0, price: 0 });
 
-      // Invalidation lifecycle per backend spec
-      if (payload.type === "BUY") {
-        queryClient.invalidateQueries({ queryKey: ["wallet"] });
-        queryClient.invalidateQueries({ queryKey: ["orders"] });
-      } else {
-        // SELL
+      // Invalidation lifecycle
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (side === "SELL") {
         queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-        queryClient.invalidateQueries({ queryKey: ["orders"] });
-        queryClient.invalidateQueries({ queryKey: ["wallet"] });
       }
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message ?? err?.message ?? "Unable to place order.";
-
       setServerError(message);
 
-      // 400: show toast with server message and mark relevant field(s)
       if (status === 400) {
         toast.error(message);
-        // Heuristics to highlight fields
-        if (/quantity/i.test(message)) {
-          setError("quantity", { type: "server", message });
-        }
-        if (/price/i.test(message)) {
-          setError("price", { type: "server", message });
-        }
-        if (/symbol|invalid/i.test(message)) {
-          setError("stockSymbol", { type: "server", message });
-        }
+        if (/quantity/i.test(message)) setError("quantity", { type: "server", message });
+        if (/price/i.test(message)) setError("price", { type: "server", message });
+        if (/symbol|invalid/i.test(message)) setError("stockSymbol", { type: "server", message });
         return;
       }
 
-      // 429: enforce cooldown UI
       if (status === 429) {
         const retrySeconds = err?.response?.data?.retryAfter ?? 30;
         setCooldownUntil(Date.now() + retrySeconds * 1000);
         toast.error(`Rate limited — try again in ${retrySeconds} seconds`);
-        return;
       }
-
-      // Generic fallback
-      toast.error("Order failed");
     }
   };
 
@@ -173,7 +154,7 @@ export default function OrderForm({ side = "BUY", symbol }) {
           {...register("quantity", { valueAsNumber: true })}
         />
         <Input
-          label="Limit price"
+          label="Limit price (Estimated)"
           type="number"
           step="0.01"
           min="0.01"
@@ -191,7 +172,7 @@ export default function OrderForm({ side = "BUY", symbol }) {
         </div>
         <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
           <span>
-            {side === "BUY" ? "Available cash" : "Owned shares (approx.)"}
+            {side === "BUY" ? "Available cash" : "Owned shares"}
           </span>
           <span className="tabular-nums">
             {side === "BUY"
@@ -201,12 +182,12 @@ export default function OrderForm({ side = "BUY", symbol }) {
         </div>
         {insufficientFunds && (
           <p className="mt-2 text-[11px] font-medium text-rose-400">
-            Insufficient funds to place this order.
+            Insufficient funds.
           </p>
         )}
         {insufficientShares && (
           <p className="mt-2 text-[11px] font-medium text-rose-400">
-            You are trying to sell more shares than you own.
+            Insufficient holdings.
           </p>
         )}
       </div>
@@ -235,4 +216,3 @@ export default function OrderForm({ side = "BUY", symbol }) {
     </form>
   );
 }
-

@@ -1,50 +1,38 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "../lib/axios";
-import { ROUTES } from "../lib/constants";
+import { ROUTES, API } from "../lib/constants";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
-
-  // Explicit local loading state (defaults to true to avoid flicker)
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * Cookie-based session probe
-   * If this succeeds → user is authenticated
-   * If this fails (401) → not authenticated
-   */
-  const { data, isError, isFetching } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const res = await api.get("/auth/me");
-      return res.data;
-    },
-    retry: false,
-  });
-
+  // 1. Initial Session Probe
   useEffect(() => {
-    // keep explicit loading state in-sync with react-query
-    setIsLoading(isFetching);
-  }, [isFetching]);
+    const checkAuth = async () => {
+      try {
+        const res = await api.get(API.AUTH.ME);
+        setUser(res.data?.user ?? res.data);
+      } catch (err) {
+        // 401 is expected if not logged in; don't treat as error
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
-  useEffect(() => {
-    if (!isError && data) {
-      // set the actual user returned from server when available
-      setUser(data?.user ?? data);
-    } else if (isError) {
-      setUser(null);
-    }
-  }, [data, isError]);
-
+  // 2. Global Event Listener for Session Expiry
   useEffect(() => {
     const onUnauthorized = () => {
       setUser(null);
-      // avoid redirect loop
-      if (window.location.pathname !== ROUTES.login) {
+      // Only redirect if we are inside a protected route to avoid loops
+      const isPublicRoute = window.location.pathname.startsWith("/auth");
+      if (!isPublicRoute) {
         window.location.replace(ROUTES.login);
       }
     };
@@ -54,25 +42,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (payload) => {
-    // payload should be { email, password }
-    const res = await api.post("/auth/login", payload);
+    const res = await api.post(API.AUTH.LOGIN, payload);
     setUser(res.data?.user ?? res.data);
-    // Invalidate user-related caches
-    queryClient.invalidateQueries({ queryKey: ["user"] });
     window.location.replace(ROUTES.dashboard);
   };
 
   const signup = async (payload) => {
-    // FIXED: Endpoint mismatch
-    const res = await api.post("/auth/sign-up", payload);
+    const res = await api.post(API.AUTH.SIGNUP, payload);
     setUser(res.data?.user ?? res.data);
-    queryClient.invalidateQueries({ queryKey: ["user"] });
     window.location.replace(ROUTES.dashboard);
   };
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await api.post(API.AUTH.LOGOUT);
     } finally {
       setUser(null);
       queryClient.clear();
@@ -94,8 +77,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

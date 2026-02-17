@@ -1,39 +1,35 @@
 import React, { useMemo, useState } from "react";
 import Button from "../../ui/Button";
-import { usePortfolio } from "../../../hooks/usePortfolio";
 import { formatCurrency, formatPercent } from "../../../lib/utils";
 import QuickSellModal from "./QuickSellModal";
 
-export default function PortfolioTable({ priceMap = {}, priceLoading = false }) {
-  const { data, isLoading, isError, refetch } = usePortfolio();
+export default function PortfolioTable({ holdings = [], isLoading, isError }) {
   const [quickSellSymbol, setQuickSellSymbol] = useState(null);
 
-  const holdings = data?.holdings ?? [];
+  const rows = useMemo(() => {
+    return holdings.map((h) => {
+      // Backend provides: stockSymbol, quantity, avgPrice, currentPrice, unrealizedPnl
+      const symbol = (h.stockSymbol ?? h.symbol ?? "").toUpperCase();
+      const qty = h.quantity ?? 0;
+      const avg = h.avgPrice ?? h.averagePrice ?? 0;
+      const current = h.currentPrice ?? 0;
+      
+      // Calculate PnL % purely for display (Value is from backend)
+      const pnlValue = h.unrealizedPnl ?? 0;
+      // Protect against divide by zero if avg is 0
+      const pnlPct = avg > 0 ? ((current - avg) / avg) * 100 : 0;
 
-  const rows = useMemo(
-    () =>
-      // ... inside useMemo ...
-      holdings.map((h) => {
-        const symbol = (h.stockSymbol ?? h.symbol ?? "").toUpperCase();
-        const qty = h.quantity ?? 0;
-        // FIXED: avgPrice is the key from backend
-        const avg = h.avgPrice ?? h.averagePrice ?? 0; 
-        const current = priceMap[symbol];
-        // ...
-        const pnlValue = current !== undefined ? (current - avg) * qty : null;
-        const pnlPct = current !== undefined && avg > 0 ? ((current - avg) / avg) * 100 : 0;
-        return {
-          ...h,
-          symbol,
-          qty,
-          avg,
-          current,
-          pnlValue,
-          pnlPct,
-        };
-      }),
-    [holdings, priceMap]
-  );
+      return {
+        ...h,
+        symbol,
+        qty,
+        avg,
+        current,
+        pnlValue,
+        pnlPct,
+      };
+    });
+  }, [holdings]);
 
   if (isLoading) {
     return (
@@ -47,9 +43,6 @@ export default function PortfolioTable({ priceMap = {}, priceLoading = false }) 
     return (
       <div className="space-y-3 py-8 text-sm text-slate-300">
         <p>Unable to load portfolio right now.</p>
-        <Button type="button" size="sm" onClick={() => refetch()}>
-          Retry
-        </Button>
       </div>
     );
   }
@@ -86,35 +79,19 @@ export default function PortfolioTable({ priceMap = {}, priceLoading = false }) 
                   {formatCurrency(row.avg)}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums text-slate-200">
-                  {row.current !== undefined ? (
-                    formatCurrency(row.current)
-                  ) : (
-                    priceLoading ? (
-                      <span className="text-slate-400">Loading…</span>
-                    ) : (
-                      "--"
-                    )
-                  )}
+                  {row.current > 0 ? formatCurrency(row.current) : "--"}
                 </td>
                 <td className="px-2 py-1 text-right tabular-nums">
-                  {row.pnlValue === null ? (
-                    priceLoading ? (
-                      <span className="text-slate-400">Loading…</span>
-                    ) : (
-                      "--"
-                    )
-                  ) : (
-                    <span
-                      className={
-                        row.pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"
-                      }
-                    >
-                      {formatCurrency(row.pnlValue)}{" "}
-                      <span className="text-[11px] text-slate-400">
-                        ({formatPercent(row.pnlPct)})
-                      </span>
+                  <span
+                    className={
+                      row.pnlValue >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }
+                  >
+                    {formatCurrency(row.pnlValue)}{" "}
+                    <span className="text-[11px] text-slate-400">
+                      ({formatPercent(row.pnlPct)})
                     </span>
-                  )}
+                  </span>
                 </td>
                 <td className="px-2 py-1 text-right">
                   <Button
@@ -157,4 +134,3 @@ export default function PortfolioTable({ priceMap = {}, priceLoading = false }) 
     </>
   );
 }
-

@@ -1,8 +1,11 @@
 import axios from "axios";
 
+// FIXED: Point directly to the Backend port (5000) and the /api prefix
+const BASE_URL = "http://localhost:5000/api";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
-  withCredentials: true, // CRITICAL
+  baseURL: BASE_URL,
+  withCredentials: true, // Essential for the HttpOnly cookies used in your backend
   headers: {
     "Content-Type": "application/json",
   },
@@ -12,8 +15,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
+    const originalRequest = error.config;
 
-    // Broadcast standardized app events so React can respond in a single place
+    // Prevent infinite loops if the check-auth endpoint itself fails
+    if (originalRequest.url.includes("/auth/me") && status === 401) {
+      return Promise.reject(error);
+    }
+
+    // Broadcast standardized app events
     if (status === 401) {
       window.dispatchEvent(
         new CustomEvent("app:unauthorized", {
@@ -23,7 +32,6 @@ api.interceptors.response.use(
     }
 
     if (status === 429) {
-      // rate limit: include a retry hint (seconds)
       window.dispatchEvent(
         new CustomEvent("app:rate-limited", {
           detail: { retryAfter: 30 },
@@ -35,9 +43,13 @@ api.interceptors.response.use(
       window.dispatchEvent(new CustomEvent("app:service-unavailable"));
     }
 
+    // Network Error (Backend down)
+    if (!error.response && error.code === "ERR_NETWORK") {
+      console.error(`[Network Error] Could not connect to ${BASE_URL}. Is the backend running?`);
+    }
+
     return Promise.reject(error);
   }
 );
 
 export default api;
-

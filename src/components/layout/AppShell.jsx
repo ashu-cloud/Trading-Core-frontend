@@ -1,23 +1,40 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
+import toast from "react-hot-toast"; // Import toast
 
 export default function AppShell({ children }) {
   const [serviceDown, setServiceDown] = useState(false);
 
   useEffect(() => {
+    // 1. Service Down (500)
     const onServiceUnavailable = () => setServiceDown(true);
+
+    // 2. Rate Limit (429) - New Listener
+    const onRateLimit = (e) => {
+      const seconds = e.detail?.retryAfter ?? 30;
+      // Prevent spamming toasts if multiple requests fail at once
+      toast.error(`Rate limit hit. Pausing for ${seconds}s`, {
+        id: "rate-limit-toast", 
+      });
+    };
+
     window.addEventListener("app:service-unavailable", onServiceUnavailable);
-    return () => window.removeEventListener("app:service-unavailable", onServiceUnavailable);
+    window.addEventListener("app:rate-limited", onRateLimit);
+
+    return () => {
+      window.removeEventListener("app:service-unavailable", onServiceUnavailable);
+      window.removeEventListener("app:rate-limited", onRateLimit);
+    };
   }, []);
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <Navbar />
       {serviceDown && (
-        <div className="bg-rose-600 text-white py-2 text-center text-sm">
-          Service Unavailable — some features may be degraded. We are working on it.
+        <div className="bg-rose-600 text-white py-2 text-center text-sm font-medium animate-pulse">
+          ⚠️ Service Unavailable — We are experiencing backend instability.
           <button
-            className="ml-4 underline"
+            className="ml-4 underline hover:text-rose-200"
             onClick={() => setServiceDown(false)}
           >
             Dismiss
@@ -30,4 +47,3 @@ export default function AppShell({ children }) {
     </div>
   );
 }
-

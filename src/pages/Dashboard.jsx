@@ -16,25 +16,18 @@ export default function Dashboard() {
 
   const walletBalance = wallet?.balance ?? 0;
   const holdings = portfolio?.holdings ?? [];
-  const realizedPnl = portfolio?.realizedPnl ?? 0;
+  
+  // FIXED: Access 'realizedPnL' (matching backend casing)
+  const realizedPnl = portfolio?.realizedPnL ?? 0;
 
-  // Portfolio market value is not available from backend directly (backend does not store live price).
-  // Use averagePrice * qty as a conservative estimate; live market value is computed on the Portfolio page.
- // src/pages/Dashboard.jsx
-
-  // ...
-  // FIXED: averagePrice -> avgPrice
   const portfolioValue = useMemo(
     () =>
-      holdings.reduce(
-        (sum, h) => sum + ( (h.avgPrice ?? h.averagePrice ?? 0) * (h.quantity ?? 0) ),
-        0
-      ),
+      holdings.reduce((sum, h) => {
+        const price = h.currentPrice && h.currentPrice > 0 ? h.currentPrice : (h.avgPrice ?? 0);
+        return sum + (price * (h.quantity ?? 0));
+      }, 0),
     [holdings]
   );
-
-  // NOTE: Realized PnL will remain 0 unless backend is updated to return it.
-  // No frontend fix possible for missing data, but safe navigation handles it.
 
   const accountValue = walletBalance + portfolioValue;
 
@@ -60,7 +53,7 @@ export default function Dashboard() {
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="Account value" className="md:col-span-2">
-          <p className="text-xs text-slate-400">Cash + Portfolio</p>
+          <p className="text-xs text-slate-400">Cash + Portfolio (Market Value)</p>
           <p className="mt-1 text-3xl font-semibold tabular-nums">
             {formatCurrency(accountValue)}
           </p>
@@ -121,7 +114,9 @@ export default function Dashboard() {
                     border: "1px solid #1e293b",
                     borderRadius: "0.5rem",
                     fontSize: "11px",
+                    color: "#f8fafc", // FIXED: Force white text
                   }}
+                  itemStyle={{ color: "#f8fafc" }} // FIXED: Force item text to white
                   formatter={(value, name) => [formatCurrency(value), name]}
                 />
               </PieChart>
@@ -192,4 +187,3 @@ export default function Dashboard() {
     </AppShell>
   );
 }
-

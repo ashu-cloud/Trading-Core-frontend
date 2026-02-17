@@ -53,12 +53,14 @@ export default function AllocationChart() {
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{
+              contentStyle={{
               backgroundColor: "#020617",
               border: "1px solid #1e293b",
               borderRadius: "0.5rem",
               fontSize: "11px",
+              color: "#f8fafc", // FIXED: Visible text color
             }}
+            itemStyle={{ color: "#f8fafc" }} // FIXED: Visible item color
             formatter={(value, name) => [formatCurrency(value), name]}
           />
         </PieChart>
