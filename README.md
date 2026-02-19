@@ -3,6 +3,13 @@
 
 A high-performance, responsive React frontend for a simulated stock trading and portfolio management platform. This application allows users to explore live market data, execute simulated trades, and track real-time portfolio performance including realized and unrealized PnL.
 
+## 🚀 Live Deployment
+
+The API is currently deployed and accessible at:
+**[👉 Live API Endpoint](https://trading-core-frontend.onrender.com/auth)**
+
+
+
 ## ✨ Features
 
 * **Secure Authentication Flow:** Robust JWT-based authentication utilizing a hybrid approach (HttpOnly cookies for session persistence + `localStorage` for fast Axios interceptor injection). Includes strict route guarding for protected dashboard areas.
@@ -10,12 +17,6 @@ A high-performance, responsive React frontend for a simulated stock trading and 
 * **Real-time Portfolio Tracking:** Dynamic tables and allocation charts that calculate Unrealized PnL (open positions) and Realized PnL (closed positions) based on live market quotes.
 * **Order Management:** A dedicated trading terminal for placing Buy/Sell orders, complete with dynamic cash balance validation.
 * **Optimized State Management:** Utilizes React Query for aggressive data caching, background refetching, and deduping network requests across complex component trees.
-
-
-## 🚀 Live Deployment
-
-The API is currently deployed and accessible at:
-**[👉 Live API Endpoint](https://trading-core-frontend.onrender.com/auth)**
 
 
 ## 🛠️ Tech Stack
