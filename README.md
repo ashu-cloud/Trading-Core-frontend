@@ -11,6 +11,13 @@ A high-performance, responsive React frontend for a simulated stock trading and 
 * **Order Management:** A dedicated trading terminal for placing Buy/Sell orders, complete with dynamic cash balance validation.
 * **Optimized State Management:** Utilizes React Query for aggressive data caching, background refetching, and deduping network requests across complex component trees.
 
+
+## 🚀 Live Deployment
+
+The API is currently deployed and accessible at:
+**[👉 Live API Endpoint](https://trading-core-backend.onrender.com)**
+
+
 ## 🛠️ Tech Stack
 
 * **Framework:** React.js (via Vite)
