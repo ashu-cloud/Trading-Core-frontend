@@ -8,6 +8,8 @@ A high-performance, responsive React frontend for a simulated stock trading and 
 The API is currently deployed and accessible at:
 **[👉 Live API Endpoint](https://trading-core-frontend.onrender.com/auth)**
 
+### Backend link
+**[Backend link of this frontend](https://github.com/ashu-cloud/trading-core-backend)
 
 
 ## ✨ Features
