@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // FIXED: Point directly to the Backend port (5000) and the /api prefix
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "https://trading-core-backend.onrender.com/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
