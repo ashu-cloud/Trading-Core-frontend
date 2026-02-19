@@ -1,15 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom"; // Added for navigation
 import Button from "../../ui/Button";
 import Input from "../../ui/Input";
 import { useWalletBalance, usePortfolio } from "../../../hooks/usePortfolio";
 import api from "../../../lib/axios";
-import { API } from "../../../lib/constants"; // Use correct API constant
 import { formatCurrency } from "../../../lib/utils";
+import { ROUTES } from "../../../lib/constants";
 
 const orderSchema = z.object({
   stockSymbol: z.string().min(1, "Symbol is required"),
@@ -21,33 +22,37 @@ const orderSchema = z.object({
     .positive("Price must be greater than zero"),
 });
 
-export default function OrderForm({ side = "BUY", symbol }) {
+export default function OrderForm({ side = "BUY", symbol, currentPrice }) {
   const [serverError, setServerError] = useState("");
-  const [cooldownUntil, setCooldownUntil] = useState(0);
   const { data: wallet } = useWalletBalance();
   const { data: portfolio } = usePortfolio();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
-    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       stockSymbol: symbol || "",
       quantity: 0,
-      price: 0,
+      price: currentPrice || 0,
     },
   });
 
+  // FIXED: Auto-update form when user searches or price updates
+  useEffect(() => {
+    if (symbol) setValue("stockSymbol", symbol);
+    if (currentPrice) setValue("price", currentPrice);
+  }, [symbol, currentPrice, setValue]);
+
   const quantity = watch("quantity");
   const price = watch("price");
-  const currentSymbol = watch("stockSymbol");
-
   const total = useMemo(
     () => Number(quantity || 0) * Number(price || 0),
     [quantity, price]
@@ -57,91 +62,80 @@ export default function OrderForm({ side = "BUY", symbol }) {
   const holdings = portfolio?.holdings ?? [];
 
   const ownedShares = useMemo(() => {
-    if (!currentSymbol) return 0;
     const holding = holdings.find(
-      (h) => (h.stockSymbol ?? h.symbol) === currentSymbol.toUpperCase()
+      (h) => (h.stockSymbol ?? h.symbol) === (symbol || watch("stockSymbol"))
     );
     return holding?.quantity ?? 0;
-  }, [holdings, currentSymbol]);
+  }, [holdings, symbol, watch]);
 
   const insufficientFunds = side === "BUY" && total > walletBalance;
   const insufficientShares = side === "SELL" && quantity > ownedShares;
 
-  const isCooldown = Date.now() < cooldownUntil;
-  const [secondsLeft, setSecondsLeft] = useState(0);
-
-  React.useEffect(() => {
-    if (!isCooldown) {
-      setSecondsLeft(0);
-      return;
-    }
-    const t = setInterval(() => {
-      const left = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
-      setSecondsLeft(left);
-      if (left <= 0) {
-        clearInterval(t);
-        setCooldownUntil(0);
-      }
-    }, 500);
-    return () => clearInterval(t);
-  }, [cooldownUntil, isCooldown]);
-
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      // FIXED: Ensure strict types match backend DTO
       const payload = {
-        symbol: String(values.stockSymbol).trim().toUpperCase(),
+        symbol: String(values.stockSymbol).toUpperCase(),
         quantity: Number(values.quantity),
+        type: side.toUpperCase(),
       };
 
       if (side === "BUY") {
-         await api.post(API.ORDER.BUY, payload);
+         await api.post("/order/buy", payload);
+         
+         // FIXED: Custom Toast with Action Button
+         toast.custom((t) => (
+            <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-slate-800 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-start">
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-slate-100">
+                      Buy Order Created!
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Go to Orders tab to confirm execution.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex border-l border-slate-700">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    navigate(ROUTES.orders); // Redirect user
+                  }}
+                  className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none"
+                >
+                  Go to Orders
+                </button>
+              </div>
+            </div>
+         ), { duration: 5000 });
+
       } else {
-         await api.post(API.ORDER.SELL, payload);
+         await api.post("/order/sell", payload);
+         toast.success("Sell order executed successfully");
       }
 
-      toast.success(`${side} order placed successfully`);
-      reset({ stockSymbol: symbol || "", quantity: 0, price: 0 });
+      reset({ stockSymbol: symbol || "", quantity: 0, price: currentPrice || 0 });
 
-      // Invalidation lifecycle
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      if (side === "SELL") {
-        queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-      }
+      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+
     } catch (err) {
-      const status = err?.response?.status;
-      const message = err?.response?.data?.message ?? err?.message ?? "Unable to place order.";
+      const message = err?.response?.data?.message ?? "Order failed";
       setServerError(message);
-
-      if (status === 400) {
-        toast.error(message);
-        if (/quantity/i.test(message)) setError("quantity", { type: "server", message });
-        if (/price/i.test(message)) setError("price", { type: "server", message });
-        if (/symbol|invalid/i.test(message)) setError("stockSymbol", { type: "server", message });
-        return;
-      }
-
-      if (status === 429) {
-        const retrySeconds = err?.response?.data?.retryAfter ?? 30;
-        setCooldownUntil(Date.now() + retrySeconds * 1000);
-        toast.error(`Rate limited — try again in ${retrySeconds} seconds`);
-      }
+      toast.error(message);
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4 text-xs"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs" noValidate>
       <Input
         label="Symbol"
-        placeholder="e.g. AAPL"
-        defaultValue={symbol}
-        error={errors.stockSymbol?.message}
+        readOnly // FIXED: Make read-only since it syncs with search
+        className="opacity-70 cursor-not-allowed"
         {...register("stockSymbol")}
       />
       <div className="grid grid-cols-2 gap-3">
@@ -150,11 +144,12 @@ export default function OrderForm({ side = "BUY", symbol }) {
           type="number"
           step="1"
           min="1"
+          placeholder="0"
           error={errors.quantity?.message}
           {...register("quantity", { valueAsNumber: true })}
         />
         <Input
-          label="Limit price (Estimated)"
+          label="Limit Price (Auto-filled)"
           type="number"
           step="0.01"
           min="0.01"
@@ -165,43 +160,24 @@ export default function OrderForm({ side = "BUY", symbol }) {
 
       <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
         <div className="flex items-center justify-between text-[11px] text-slate-400">
-          <span>Estimated notional</span>
+          <span>Total Cost</span>
           <span className="tabular-nums text-slate-100">
             {formatCurrency(total)}
           </span>
         </div>
         <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-          <span>
-            {side === "BUY" ? "Available cash" : "Owned shares"}
-          </span>
+          <span>{side === "BUY" ? "Available Cash" : "Owned Shares"}</span>
           <span className="tabular-nums">
-            {side === "BUY"
-              ? formatCurrency(walletBalance)
-              : ownedShares.toString()}
+            {side === "BUY" ? formatCurrency(walletBalance) : ownedShares}
           </span>
         </div>
         {insufficientFunds && (
-          <p className="mt-2 text-[11px] font-medium text-rose-400">
-            Insufficient funds.
-          </p>
-        )}
-        {insufficientShares && (
-          <p className="mt-2 text-[11px] font-medium text-rose-400">
-            Insufficient holdings.
-          </p>
+          <p className="mt-2 text-[11px] font-medium text-rose-400">Insufficient funds</p>
         )}
       </div>
 
       {serverError && (
-        <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-medium text-rose-200">
-          {serverError}
-        </div>
-      )}
-
-      {isCooldown && (
-        <div className="text-center text-xs text-amber-300">
-          Cool down: {secondsLeft}s
-        </div>
+        <div className="text-xs text-rose-400 bg-rose-500/10 p-2 rounded">{serverError}</div>
       )}
 
       <Button
@@ -209,9 +185,9 @@ export default function OrderForm({ side = "BUY", symbol }) {
         className="w-full"
         variant={side === "BUY" ? "success" : "danger"}
         isLoading={isSubmitting}
-        disabled={insufficientFunds || insufficientShares || total <= 0 || isCooldown}
+        disabled={insufficientFunds || insufficientShares || total <= 0}
       >
-        {side === "BUY" ? "Place buy order" : "Place sell order"}
+        {side === "BUY" ? "Place Buy Order" : "Place Sell Order"}
       </Button>
     </form>
   );

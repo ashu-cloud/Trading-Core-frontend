@@ -7,69 +7,108 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
+
+  // ✅ FIX 1: Single, stable state initialization
+  const [user, setUser] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Initial Session Probe
+  // ✅ FIX 2: Background check that doesn't trigger redirects mid-render
   useEffect(() => {
-    const checkAuth = async () => {
+    const verifySession = async () => {
       try {
         const res = await api.get(API.AUTH.ME);
-        setUser(res.data?.user ?? res.data);
+        const userData = res.data?.user ?? res.data;
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
       } catch (err) {
-        // 401 is expected if not logged in; don't treat as error
-        setUser(null);
+        if (err.response?.status === 401) {
+          // Only clear if we actually had a session
+          if (localStorage.getItem("token")) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setUser(null);
+          }
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    checkAuth();
-  }, []);
-
-  // 2. Global Event Listener for Session Expiry
-  useEffect(() => {
-    const onUnauthorized = () => {
-      setUser(null);
-      // Only redirect if we are inside a protected route to avoid loops
-      const isPublicRoute = window.location.pathname.startsWith("/auth");
-      if (!isPublicRoute) {
-        window.location.replace(ROUTES.login);
-      }
-    };
-
-    window.addEventListener("app:unauthorized", onUnauthorized);
-    return () => window.removeEventListener("app:unauthorized", onUnauthorized);
+    verifySession();
   }, []);
 
   const login = async (payload) => {
     const res = await api.post(API.AUTH.LOGIN, payload);
-    setUser(res.data?.user ?? res.data);
+    const { token, user: userData } = res.data;
+    if (token) localStorage.setItem("token", token);
+    const finalUser = userData ?? res.data;
+    localStorage.setItem("user", JSON.stringify(finalUser));
+    setUser(finalUser);
     window.location.replace(ROUTES.dashboard);
   };
 
-  const signup = async (payload) => {
-    const res = await api.post(API.AUTH.SIGNUP, payload);
-    setUser(res.data?.user ?? res.data);
-    window.location.replace(ROUTES.dashboard);
-  };
-
-  const logout = async () => {
+const logout = async () => {
     try {
-      await api.post(API.AUTH.LOGOUT);
+      // 2. Tell the server to destroy the HttpOnly cookie
+      // (Adjust the route if your endpoint is different, e.g., /user/logout)
+      await api.post("/auth/logout"); 
+    } catch (error) {
+      console.error("Server logout failed, clearing local state anyway", error);
     } finally {
+      // 3. Destroy the frontend evidence
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       setUser(null);
-      queryClient.clear();
-      window.location.replace(ROUTES.login);
+      if (queryClient) queryClient.clear();
+      
+      // 4. Redirect to login
+      window.location.replace("/auth");
     }
   };
 
+
+const signup = async (userData) => {
+    try {
+      // 1. Make the request (Verify this URL matches your backend route!)
+      const res = await api.post("/auth/sign-up", userData); 
+
+      // 2. Grab the token and user from our newly fixed backend response
+      const { token, user } = res.data;
+
+      // 3. Save to localStorage
+      if (token) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        setUser(user);
+        
+        // 4. HARD REDIRECT: Bypass React Router's catch-all trap
+        window.location.replace("/dashboard"); 
+      }
+      
+      return res.data;
+      
+    } catch (error) {
+      console.error("AuthContext Signup Error:", error);
+      // Throw the error so your RegisterForm's catch block can display the red toast
+      throw error; 
+    }
+  };
+
+  // ✅ Removed useMemo to simplify and prevent potential dependency loops
   const value = {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || !!localStorage.getItem("token"),
     login,
-    signup,
     logout,
+    signup,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -13,9 +13,11 @@ const loginSchema = z.object({
     .trim()
     .min(6, "Password must be at least 6 characters"),
 });
+
 export default function LoginForm() {
   const { login } = useAuth();
   const [serverError, setServerError] = useState("");
+  
   const {
     register,
     handleSubmit,
@@ -31,8 +33,12 @@ export default function LoginForm() {
   const onSubmit = async (values) => {
     setServerError("");
     try {
-      await login(values);
+      // ✅ No navigate() needed here. 
+      // AuthContext.login uses window.location.replace(ROUTES.dashboard).
+      // This hard redirect is the key to breaking the auth loop.
+      await login(values); 
     } catch (err) {
+      console.error(err);
       const message =
         err?.response?.data?.message ??
         err?.response?.data?.error ??
@@ -62,15 +68,16 @@ export default function LoginForm() {
         error={errors.password?.message}
         {...register("password")}
       />
+      
       {serverError && (
         <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-200">
           {serverError}
         </div>
       )}
+
       <Button type="submit" className="w-full" isLoading={isSubmitting}>
         Sign in
       </Button>
     </form>
   );
 }
-

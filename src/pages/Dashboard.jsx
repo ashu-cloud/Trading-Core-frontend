@@ -20,8 +20,7 @@ export default function Dashboard() {
   const walletBalance = wallet?.balance ?? 0;
   const holdings = portfolio?.holdings ?? [];
   
-  // FIXED: Access 'realizedPnL' (matching backend casing)
-  const realizedPnl = portfolio?.realizedPnL ?? 0;
+  const realizedPnl = portfolio?.totalRealizedPnl ?? 0;
 
   const portfolioValue = useMemo(
     () =>

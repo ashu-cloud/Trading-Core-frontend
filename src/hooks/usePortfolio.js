@@ -18,8 +18,11 @@ export function usePortfolio() {
     queryKey: ["portfolio"],
     queryFn: async () => {
       const res = await api.get("/portfolio");
-      return res.data ?? { holdings: [], realizedPnl: 0 };
+      return res.data ?? { 
+        holdings: [], 
+        totalUnrealizedPnl: 0, 
+        totalRealizedPnl: 0 
+      };
     },
   });
 }
-

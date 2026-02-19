@@ -6,12 +6,13 @@ import {
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import Market from "./pages/Market";
+import AllStocks from "./pages/AllStocks"; 
 import Orders from "./pages/Orders";
 import Portfolio from "./pages/Portfolio";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
+import AppShell from "./components/layout/AppShell"; 
 
 function RouteErrorElement() {
-  // Global route error boundary
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4 text-center text-slate-100">
       <h1 className="mb-2 text-lg font-semibold">Something went wrong</h1>
@@ -39,7 +40,7 @@ const router = createBrowserRouter([
     element: <Navigate to="/auth" replace />,
   },
   {
-    element: <ProtectedRoute />,
+    element: <ProtectedRoute />, 
     errorElement: <RouteErrorElement />,
     children: [
       {
@@ -52,8 +53,14 @@ const router = createBrowserRouter([
       },
       {
         path: "/market",
-        element: <Market />,
+        element: <Market />, 
       },
+     
+      {
+        path: "/market/all",
+        element: <AllStocks />, 
+      },
+      // -----------------------------
       {
         path: "/orders",
         element: <Orders />,
@@ -71,4 +78,3 @@ const router = createBrowserRouter([
 ]);
 
 export default router;
-

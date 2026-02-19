@@ -7,13 +7,21 @@ import { usePortfolio } from "../hooks/usePortfolio";
 import { formatCurrency } from "../lib/utils";
 
 export default function Portfolio() {
-  // We trust the backend to return 'totalUnrealizedPnl' and enriched 'holdings'
-  // containing 'currentPrice' and per-position PnL.
-  const { data, isLoading, isError, refetch } = usePortfolio();
+  // 1. Catch both 'data' (React Query default) and 'portfolio' (if custom mapped)
+  const { data, portfolio: hookPortfolio, isLoading, isError, refetch } = usePortfolio();
 
-  const holdings = data?.holdings ?? [];
-  const realizedPnl = data?.realizedPnL ?? 0; // Note: Ensure backend allows this if needed, else 0
-  const totalUnrealized = data?.totalUnrealizedPnl ?? 0;
+  if (isLoading) return <div className="p-10 text-slate-400">Loading...</div>;
+  if (isError) return <div className="p-10 text-rose-500">Error loading portfolio</div>;
+
+  // 2. Safely unwrap the object, wherever it's hiding
+  const portfolioData = hookPortfolio || data?.portfolio || data || {};
+
+  // 3. Catch BOTH "holding" (backend schema) and "holdings" (frontend expectation)
+  const holdings = portfolioData.holding || portfolioData.holdings || [];
+  
+  // 4. Extract PnL safely
+  const realizedPnl = portfolioData.totalRealizedPnl || portfolioData.realizedPnl || 0;
+  const totalUnrealized = portfolioData.totalUnrealizedPnl || portfolioData.unrealizedPnl || 0;
 
   return (
     <AppShell>
@@ -62,8 +70,7 @@ export default function Portfolio() {
           </p>
         </Card>
         <Card title="Allocation">
-          {/* AllocationChart fetches its own data internally, which is fine 
-              as React Query deduplicates the request key ['portfolio'] */}
+          {/* AllocationChart fetches its own data internally */}
           <AllocationChart />
         </Card>
       </div>

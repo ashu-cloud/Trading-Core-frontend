@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Search, AlertCircle } from "lucide-react"; // Added AlertCircle for better UI
+import React, { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import AppShell from "../components/layout/AppShell";
 import Card from "../components/ui/Card";
 import { useDebounce } from "../hooks/useDebounce";
@@ -7,29 +7,25 @@ import { useMarketPrice } from "../hooks/useMarket";
 import PriceDisplay from "../components/features/market/PriceDisplay";
 import OrderForm from "../components/features/market/OrderForm";
 import Button from "../components/ui/Button";
+import { useSearchParams } from "react-router-dom";
 
 export default function Market() {
-  // inputSymbol tracks exactly what the user types (UI state)
-  const [inputSymbol, setInputSymbol] = useState("AAPL");
+  const [searchParams] = useSearchParams();
+  const symbolFromUrl = searchParams.get("symbol");
+
+  // Sync the search input with the URL symbol immediately
+  const [inputSymbol, setInputSymbol] = useState(symbolFromUrl || ""); 
+  const debouncedSymbol = useDebounce(inputSymbol.trim().toUpperCase(), 400);
   const [activeTab, setActiveTab] = useState("BUY");
 
-  // FIX 1: Search Logic - Extract Ticker
-  // This function isolates the ticker from strings like "JPM (JPMORGAN CHASE & CO.)"
-  const extractTicker = (raw) => {
-    if (!raw) return "";
-    // 1. Split by space or open parenthesis to separate Ticker from Company Name
-    // 2. Remove any non-ticker characters (allow letters, numbers, and '.' for suffixes)
-    const clean = raw.split(/[\s(]/)[0].replace(/[^A-Z0-9.]/gi, "");
-    return clean.toUpperCase();
-  };
+  const { data, isLoading, isError, refetch } = useMarketPrice(debouncedSymbol);
 
-  // We debounce the CLEANED symbol for the API call
-  // This prevents "JPM (..." from ever hitting the backend
-  const debouncedSymbol = useDebounce(extractTicker(inputSymbol), 500);
-
-  const { data, isLoading, isError, refetch } = useMarketPrice(
-    debouncedSymbol
-  );
+  // If the URL changes (e.g., user clicks a different stock in All Stocks), update the input
+  useEffect(() => {
+    if (symbolFromUrl) {
+      setInputSymbol(symbolFromUrl);
+    }
+  }, [symbolFromUrl]);
 
   return (
     <AppShell>
@@ -47,7 +43,7 @@ export default function Market() {
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               className="w-full rounded-md border border-slate-700 bg-slate-900 pl-7 pr-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
-              placeholder="Search symbol (e.g. AAPL, TATAMOTORS)"
+              placeholder="Search symbol (e.g. AAPL, TSLA)"
               value={inputSymbol}
               onChange={(e) => setInputSymbol(e.target.value)}
             />
@@ -65,30 +61,20 @@ export default function Market() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card title="Price action">
-          {/* PriceDisplay handles the data or loading states */}
           <PriceDisplay symbol={debouncedSymbol} data={data} isLoading={isLoading} />
-          
-          {/* FIX 2: Enhanced Error Handling for Indian/Missing Stocks */}
-          {isError && (
-            <div className="mt-4 flex items-start gap-3 rounded-md border border-rose-500/30 bg-rose-500/10 p-3">
-              <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
-              <div>
-                <p className="text-xs font-medium text-rose-300">
-                  Symbol "{debouncedSymbol}" not found.
-                </p>
-                <p className="mt-1 text-[11px] text-rose-400/80 leading-relaxed">
-                  The backend could not retrieve data for this ticker. 
-                  <br />
-                  <span className="text-rose-200 block mt-1">
-                    • Check for typos.
-                    <br />
-                    • For <strong>Indian Stocks (NSE)</strong>, append <code className="bg-rose-950/50 px-1 rounded">.NS</code> (e.g., {debouncedSymbol || "TATA"}.NS).
-                  </span>
-                </p>
-              </div>
+          {isError && debouncedSymbol && (
+             <p className="mt-3 text-[11px] text-rose-400">
+               Symbol not found. Make sure the ticker is correct.
+             </p>
+          )}
+          {!debouncedSymbol && (
+            <div className="mt-10 flex flex-col items-center justify-center text-slate-500">
+              <Search className="mb-2 h-8 w-8 opacity-20" />
+              <p className="text-xs">Enter a symbol to start trading</p>
             </div>
           )}
         </Card>
+        
         <Card
           title="Order entry"
           headerRight={
@@ -115,9 +101,13 @@ export default function Market() {
             </div>
           }
         >
-          {/* Pass the CLEANED symbol to OrderForm so it doesn't fail either */}
-          <OrderForm side={activeTab} symbol={debouncedSymbol} />
+          <OrderForm 
+            side={activeTab} 
+            symbol={debouncedSymbol} 
+            currentPrice={data?.price} 
+          />
         </Card>
+        {/* REMOVED: <TradingTerminal /> - This was causing the crash */}
       </div>
     </AppShell>
   );

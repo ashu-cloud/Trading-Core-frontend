@@ -11,6 +11,21 @@ const api = axios.create({
   },
 });
 
+// ✅ ADDED: Request Interceptor to attach the localStorage token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      // Attaches the token to the Authorization header
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {

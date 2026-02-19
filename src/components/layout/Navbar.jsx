@@ -8,9 +8,11 @@ export default function Navbar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
+  // UPDATED: Added the "All Stocks" link here
   const navItems = [
     { to: ROUTES.dashboard, label: "Dashboard" },
     { to: ROUTES.market, label: "Market" },
+    { to: "/market/all", label: "All Stocks" }, // <--- NEW LINK
     { to: ROUTES.orders, label: "Orders" },
     { to: ROUTES.portfolio, label: "Portfolio" },
   ];
@@ -33,13 +35,13 @@ export default function Navbar() {
         <nav className="hidden items-center gap-4 text-sm text-slate-400 md:flex">
           {navItems.map((item) => (
             <NavLink
-              key={item.to}
+              key={item.label} // Changed key to label since 'to' might duplicate
               to={item.to}
               className={({ isActive }) =>
                 cn(
                   "px-2 py-1 transition-colors",
                   isActive
-                    ? "text-slate-100"
+                    ? "text-slate-100 font-medium"
                     : "hover:text-slate-100 hover:underline"
                 )
               }
@@ -59,4 +61,3 @@ export default function Navbar() {
     </header>
   );
 }
-
