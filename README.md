@@ -15,7 +15,7 @@ A high-performance, responsive React frontend for a simulated stock trading and 
 ## 🚀 Live Deployment
 
 The API is currently deployed and accessible at:
-**[👉 Live API Endpoint](https://trading-core-backend.onrender.com)**
+**[👉 Live API Endpoint](https://trading-core-frontend.onrender.com/auth)**
 
 
 ## 🛠️ Tech Stack
