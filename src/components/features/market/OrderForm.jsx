@@ -77,6 +77,7 @@ export default function OrderForm({ side = "BUY", symbol, currentPrice }) {
       const payload = {
         symbol: String(values.stockSymbol).toUpperCase(),
         quantity: Number(values.quantity),
+        price: Number(values.price),
         type: side.toUpperCase(),
       };
 

@@ -42,8 +42,7 @@ export default function QuickSellModal({ symbol, quantity, onClose }) {
       await api.post("/order/sell", {
         symbol: String(symbol).toUpperCase(),
         quantity: Number(values.quantity),
-        // Backend placeSellOrder doesn't strictly read price from body 
-        // (it calculates PnL based on live price), but we send it for consistency.
+        price: Number(values.price),
       });
 
       toast.success("Quick sell order placed");

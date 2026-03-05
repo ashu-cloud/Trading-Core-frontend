@@ -8,13 +8,13 @@ import { formatCurrency } from "../lib/utils";
 
 export default function Portfolio() {
   // 1. Catch both 'data' (React Query default) and 'portfolio' (if custom mapped)
-  const { data, portfolio: hookPortfolio, isLoading, isError, refetch } = usePortfolio();
+  const { data, isLoading, isError, refetch } = usePortfolio();
 
   if (isLoading) return <div className="p-10 text-slate-400">Loading...</div>;
   if (isError) return <div className="p-10 text-rose-500">Error loading portfolio</div>;
 
   // 2. Safely unwrap the object, wherever it's hiding
-  const portfolioData = hookPortfolio || data?.portfolio || data || {};
+  const portfolioData = data?.portfolio || data || {};
 
   // 3. Catch BOTH "holding" (backend schema) and "holdings" (frontend expectation)
   const holdings = portfolioData.holding || portfolioData.holdings || [];

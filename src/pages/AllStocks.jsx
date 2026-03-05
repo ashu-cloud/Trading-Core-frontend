@@ -91,7 +91,7 @@ export default function AllStocks() {
             </thead>
             <tbody className="divide-y divide-slate-800">
               {filteredStocks.map((stock) => (
-                <tr key={`${stock.symbol}-${Math.random()}`} className="hover:bg-slate-800/50 transition-colors">
+                <tr key={stock.symbol} className="hover:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs text-center uppercase">

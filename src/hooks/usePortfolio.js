@@ -16,6 +16,7 @@ export function useWalletBalance() {
 export function usePortfolio() {
   return useQuery({
     queryKey: ["portfolio"],
+    refetchInterval: 15000,
     queryFn: async () => {
       const res = await api.get("/portfolio");
       return res.data ?? { 
