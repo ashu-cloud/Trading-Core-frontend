@@ -1,7 +1,9 @@
 import axios from "axios";
 
-// FIXED: Point directly to the Backend port (5000) and the /api prefix
-const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+// In dev mode, use "/api" so the Vite proxy forwards to localhost:5000.
+// In production, fall back to the deployed backend URL.
+const BASE_URL = import.meta.env.VITE_API_URL
+  || (import.meta.env.DEV ? "/api" : "https://trading-core-backend.onrender.com/api");
 
 const api = axios.create({
   baseURL: BASE_URL,
