@@ -1,99 +1,147 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import LoginForm from "../components/features/auth/LoginForm";
 import RegisterForm from "../components/features/auth/RegisterForm";
+import SoftAurora from "../components/bits/SoftAurora/SoftAurora";
+import Orb from "../components/bits/Orb/Orb";
+import SplitText from "../components/bits/SplitText/SplitText";
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
-      <div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 md:flex">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.35),transparent_60%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.25),transparent_60%)]" />
-        <div className="relative max-w-md space-y-4 px-8">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-50">
-            Institutional-grade trading,{" "}
-            <span className="text-indigo-400">for builders</span>.
-          </h1>
-          <p className="text-sm text-slate-300">
-            Trading Core models real brokerage flows: reserved balances,
-            explicit execution, and auditable order lifecycles.
-          </p>
-          <div className="mt-6 grid grid-cols-3 gap-3 text-xs text-slate-300">
-            <div className="rounded-lg bg-slate-900/70 p-3">
-              <p className="font-medium text-emerald-400">ACID-safe</p>
-              <p className="mt-1 text-[11px] text-slate-400">
-                Wallets and portfolios updated only on executed orders.
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-900/70 p-3">
-              <p className="font-medium text-indigo-400">Audit-Ready</p>
-              <p className="mt-1 text-[11px] text-slate-400">
-                Every state transition is logged for compliance and debugging.
-              </p>
-            </div>
-            <div className="rounded-lg bg-slate-900/70 p-3">
-              <p className="font-medium text-amber-400">Realistic</p>
-              <p className="mt-1 text-[11px] text-slate-400">
-                Orders represent intent. Ownership exists only after fill.
-              </p>
-            </div>
+    <div className="flex min-h-screen bg-slate-950 text-slate-50">
+      {/* LEFT PANEL - Split screen 50/50, hidden on mobile */}
+      <div className="relative hidden md:flex flex-1 flex-col justify-between p-12 bg-slate-950 overflow-hidden border-r border-slate-900">
+        
+        {/* SoftAurora Background wrapped in opacity-50 */}
+        <div className="absolute inset-0 z-0 opacity-50 pointer-events-none">
+          <SoftAurora
+            color1="#0f172a"
+            color2="#4f46e5"
+            speed={0.35}
+            brightness={0.65}
+            scale={1.8}
+            enableMouse={false}
+            enableMouseInteraction={false}
+          />
+        </div>
+
+        {/* Decorative Circle Outlines for Depth */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div 
+            className="absolute border border-white/[0.04] rounded-full" 
+            style={{ 
+              width: "600px", 
+              height: "600px", 
+              top: "20%", 
+              left: "-10%",
+              borderRadius: "9999px" 
+            }} 
+          />
+          <div 
+            className="absolute border border-white/[0.04] rounded-full" 
+            style={{ 
+              width: "350px", 
+              height: "350px", 
+              bottom: "15%", 
+              right: "-5%",
+              borderRadius: "9999px" 
+            }} 
+          />
+        </div>
+
+        {/* Floating 3D Orb Component centered */}
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div style={{ width: "420px", height: "420px" }}>
+            <Orb
+              hue={250}
+              hoverIntensity={0.15}
+              rotateOnHover={true}
+              backgroundColor="#020617"
+            />
           </div>
         </div>
+
+        {/* Wordmark top-left */}
+        <div className="relative z-20 text-left">
+          <span className="text-lg font-bold tracking-tight text-slate-50">
+            TradePulse
+          </span>
+        </div>
+
+        {/* Heading and bullet points bottom */}
+        <div className="relative z-20 max-w-md text-left space-y-6">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-50">
+            Institutional-grade trading, for builders.
+          </h2>
+          <div className="space-y-1.5 text-xs text-slate-400 font-sans font-medium">
+            <p>— ACID-safe order execution</p>
+            <p>— Every state change logged</p>
+            <p>— Ownership exists only after fill</p>
+          </div>
+        </div>
+
       </div>
 
-      <div className="flex min-h-screen flex-1 items-center justify-center bg-slate-950 px-4 py-8">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-xl">
-          <div className="mb-6 space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">
-              Trading Core
-            </p>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-50">
-              {mode === "login" ? "Sign in" : "Create your account"}
-            </h2>
-            <p className="text-xs text-slate-400">
-              {mode === "login"
-                ? "Access your trading dashboard and live portfolio."
-                : "Spin up a new trading sandbox account in seconds."}
-            </p>
+      {/* RIGHT PANEL - Centered floating form on dark background */}
+      <div className="flex flex-1 items-center justify-center bg-slate-950 px-6 py-8 relative">
+        <div className="w-full max-w-sm space-y-8 relative z-10">
+          
+          {/* Tracked Header */}
+          <div className="space-y-3 text-left">
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500 block">
+              TRADEPULSE
+            </span>
+            <h1 className="text-4xl font-bold tracking-tight text-slate-50 block h-12">
+              <SplitText
+                key={mode} // Re-animate SplitText on mode change
+                text={mode === "login" ? "Sign in." : "Sign up."}
+                splitType="words"
+                delay={40}
+                duration={0.6}
+              />
+            </h1>
           </div>
 
-          <div className="mb-4 flex rounded-full border border-slate-800 bg-slate-900 p-1 text-xs">
-            {["login", "signup"].map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setMode(value)}
-                className="relative flex-1 rounded-full py-1.5 text-center font-medium text-slate-300"
-              >
-                {mode === value && (
-                  <motion.span
-                    layoutId="auth-toggle"
-                    className="absolute inset-0 z-0 rounded-full bg-slate-800"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-                <span className="relative z-10">
-                  {value === "login" ? "Login" : "Signup"}
-                </span>
-              </button>
-            ))}
+          {/* Toggle tabs as plain text with active underline */}
+          <div className="flex gap-6 border-b border-slate-900 pb-1 text-xs font-semibold tracking-wide uppercase font-sans">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`relative pb-3 transition-colors ${
+                mode === "login" 
+                  ? "text-slate-50 border-b-2 border-indigo-500" 
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("signup")}
+              className={`relative pb-3 transition-colors ${
+                mode === "signup" 
+                  ? "text-slate-50 border-b-2 border-indigo-500" 
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Signup
+            </button>
           </div>
 
+          {/* Form logic */}
           <div className="space-y-4">
             {mode === "login" ? <LoginForm /> : <RegisterForm />}
-            <p className="text-[11px] text-slate-500">
-              This UI talks to the{" "}
-              <span className="font-medium text-slate-300">
-                Trading Core Backend
-              </span>{" "}
-              running at <code className="text-[10px]">http://localhost:5000</code>{" "}
-              in development.
-            </p>
+            
+            {/* Bottom Backend Indicator with small static green dot */}
+            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono pt-6 border-t border-slate-900/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+              <span>Connected to Trading Core Backend</span>
+            </div>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
-
