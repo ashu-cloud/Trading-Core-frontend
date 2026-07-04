@@ -73,6 +73,10 @@ export default function OrderForm({ side = "BUY", symbol, currentPrice }) {
 
   const onSubmit = async (values) => {
     setServerError("");
+    const idempotencyKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : "f-" + Math.random().toString(36).substring(2, 15) + "-" + Date.now().toString(36);
+
     try {
       const payload = {
         symbol: String(values.stockSymbol).toUpperCase(),
@@ -81,8 +85,14 @@ export default function OrderForm({ side = "BUY", symbol, currentPrice }) {
         type: side.toUpperCase(),
       };
 
+      const config = {
+        headers: {
+          "Idempotency-Key": idempotencyKey
+        }
+      };
+
       if (side === "BUY") {
-         await api.post("/order/buy", payload);
+         await api.post("/order/buy", payload, config);
          
          // FIXED: Custom Toast with Action Button
          toast.custom((t) => (
@@ -114,7 +124,7 @@ export default function OrderForm({ side = "BUY", symbol, currentPrice }) {
          ), { duration: 5000 });
 
       } else {
-         await api.post("/order/sell", payload);
+         await api.post("/order/sell", payload, config);
          toast.success("Sell order executed successfully");
       }
 

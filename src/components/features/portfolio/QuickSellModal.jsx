@@ -37,12 +37,20 @@ export default function QuickSellModal({ symbol, quantity, onClose }) {
 
   const onSubmit = async (values) => {
     setServerError("");
+    const idempotencyKey = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : "f-" + Math.random().toString(36).substring(2, 15) + "-" + Date.now().toString(36);
+
     try {
       // FIXED: Use specific SELL endpoint and correct payload key 'symbol'
       await api.post("/order/sell", {
         symbol: String(symbol).toUpperCase(),
         quantity: Number(values.quantity),
         price: Number(values.price),
+      }, {
+        headers: {
+          "Idempotency-Key": idempotencyKey
+        }
       });
 
       toast.success("Quick sell order placed");
